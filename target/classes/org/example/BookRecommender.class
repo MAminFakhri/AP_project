@@ -1,0 +1,88 @@
+Êþº¾   A{
+       java/lang/Object <init> ()V
+  	  
+ 
+  org/example/BookRecommender  readCSV ()Ljava/util/List;
+     storeInNeo4j (Ljava/util/List;)V  Harry Potter
+     getSimilarBooks $(Ljava/lang/String;)Ljava/util/List;	       java/lang/System out Ljava/io/PrintStream;
+      ! " java/lang/String  valueOf &(Ljava/lang/Object;)Ljava/lang/String;   $ % & makeConcatWithConstants &(Ljava/lang/String;)Ljava/lang/String;
+ ( )  * + , java/io/PrintStream  println (Ljava/lang/String;)V
+  . /  callLlamaAPI  $  2 java/util/ArrayList
+ 1   5 java/io/FileReader 7 	books.csv
+ 4 9  ,  ; com/opencsv/CSVReader
+ : =  > (Ljava/io/Reader;)V
+ : @ A B readNext ()[Ljava/lang/String;  D org/example/Book
+ C F  G '(Ljava/lang/String;Ljava/lang/String;)V
+ I J  K L M java/util/List add (Ljava/lang/Object;)Z
+ : O P  close  R java/lang/Throwable
+ Q T U V 
+addSuppressed (Ljava/lang/Throwable;)V
+ X O  Y java/io/Reader  [ java/io/IOException  ] -com/opencsv/exceptions/CsvValidationException
+ _ `  a b  java/lang/Exception printStackTrace	  d e f 
+neo4jDriver Lorg/neo4j/driver/Driver;
+ h i  j k l org/neo4j/driver/Driver  session ()Lorg/neo4j/driver/Session;
+ I n o p iterator ()Ljava/util/Iterator;
+ r s  t u v java/util/Iterator  hasNext ()Z
+ r x y z next ()Ljava/lang/Object; | /MERGE (b:Book {title: $title, author: $author}) ~ title	 C € ~  Ljava/lang/String; ƒ author	 C … ƒ 
+ ‡ ˆ  ‰ Š ‹ org/neo4j/driver/Values 
+parameters -([Ljava/lang/Object;)Lorg/neo4j/driver/Value;
+  Ž    ‘ org/neo4j/driver/Session run E(Ljava/lang/String;Lorg/neo4j/driver/Value;)Lorg/neo4j/driver/Result;
+  O ” HMATCH (b:Book {title: $title})-[:SIMILAR_TO]-(rec:Book) RETURN rec.title
+ – —  ˜ ™ š org/neo4j/driver/Result stream ()Ljava/util/stream/Stream;  œ  ž accept /(Ljava/util/List;)Ljava/util/function/Consumer;
+   ¡  ¢ £ ¤ java/util/stream/Stream  forEach  (Ljava/util/function/Consumer;)V ¦    $
+ © ª  « ¬ ­ java/net/http/HttpClient 
+newHttpClient ()Ljava/net/http/HttpClient;
+ ¯ °  ± ² ³ java/net/http/HttpRequest 
+newBuilder %()Ljava/net/http/HttpRequest$Builder;
+ µ ¶  · ¸ ¹ java/net/URI create "(Ljava/lang/String;)Ljava/net/URI;
+ » ¼  ½ ¾ ¿ !java/net/http/HttpRequest$Builder uri 3(Ljava/net/URI;)Ljava/net/http/HttpRequest$Builder; Á Content-Type Ã application/json
+ » Å Æ Ç header I(Ljava/lang/String;Ljava/lang/String;)Ljava/net/http/HttpRequest$Builder;
+ É Ê  Ë Ì Í (java/net/http/HttpRequest$BodyPublishers ofString =(Ljava/lang/String;)Ljava/net/http/HttpRequest$BodyPublisher;
+ » Ï Ð Ñ POST N(Ljava/net/http/HttpRequest$BodyPublisher;)Ljava/net/http/HttpRequest$Builder;
+ » Ó Ô Õ build ()Ljava/net/http/HttpRequest;
+ × Ø  Ù Ì Ú 'java/net/http/HttpResponse$BodyHandlers *()Ljava/net/http/HttpResponse$BodyHandler;
+ © Ü Ý Þ send a(Ljava/net/http/HttpRequest;Ljava/net/http/HttpResponse$BodyHandler;)Ljava/net/http/HttpResponse;
+ à á  â ã z java/net/http/HttpResponse body  å +com/fasterxml/jackson/databind/ObjectMapper
+ ä 
+ ä è é ê readTree =(Ljava/lang/String;)Lcom/fasterxml/jackson/databind/JsonNode; ì recommendations
+ î ï  ð ñ ê 'com/fasterxml/jackson/databind/JsonNode get
+ î n
+ î ô õ ö asText ()Ljava/lang/String;  ø java/lang/InterruptedException ú 	rec.title
+ ü ý  þ ñ ÿ org/neo4j/driver/Record ,(Ljava/lang/String;)Lorg/neo4j/driver/Value;
+  ö org/neo4j/driver/Value asString bolt://localhost:7687 neo4j
+ 
+Ma1371384#
+
+  org/neo4j/driver/AuthTokens basic B(Ljava/lang/String;Ljava/lang/String;)Lorg/neo4j/driver/AuthToken;
+  org/neo4j/driver/GraphDatabase driver I(Ljava/lang/String;Lorg/neo4j/driver/AuthToken;)Lorg/neo4j/driver/Driver; CSV_FILE 
+ConstantValue Code LineNumberTable LocalVariableTable this Lorg/example/BookRecommender; main ([Ljava/lang/String;)V args [Ljava/lang/String; books Ljava/util/List; bookName neo4jRecommendations llamaRecommendations LocalVariableTypeTable $Ljava/util/List<Lorg/example/Book;>; $Ljava/util/List<Ljava/lang/String;>; line 	csvReader Lcom/opencsv/CSVReader; reader Ljava/io/Reader; e Ljava/lang/Exception; 
+StackMapTable 	Signature &()Ljava/util/List<Lorg/example/Book;>; book Lorg/example/Book; Lorg/neo4j/driver/Session; '(Ljava/util/List<Lorg/example/Book;>;)V result Lorg/neo4j/driver/Result; 8(Ljava/lang/String;)Ljava/util/List<Ljava/lang/String;>; bookNode )Lcom/fasterxml/jackson/databind/JsonNode; response Ljava/net/http/HttpResponse; responseBody mapper -Lcom/fasterxml/jackson/databind/ObjectMapper; jsonResponse apiUrl 
+jsonPayload client Ljava/net/http/HttpClient;  request Ljava/net/http/HttpRequest; 0Ljava/net/http/HttpResponse<Ljava/lang/String;>; lambda$getSimilarBooks$0 ,(Ljava/util/List;Lorg/neo4j/driver/Record;)V record Lorg/neo4j/driver/Record; <clinit> 
+SourceFile BookRecommender.java BootstrapMethodsS Neo4j Recommended Books: U LLaMA API Recommended Books: W (Ljava/lang/Object;)VY
+ ZJK\ (Lorg/neo4j/driver/Record;)V^ 
+{"book": ""}`
+ab c %d $java/lang/invoke/StringConcatFactory ˜(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;f
+gh ijk "java/lang/invoke/LambdaMetafactory 
+metafactory Ì(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite; InnerClasses  Builder BodyPublishers p 'java/net/http/HttpRequest$BodyPublisher 
+BodyPublisher BodyHandlers t &java/net/http/HttpResponse$BodyHandler 
+BodyHandler w %java/lang/invoke/MethodHandles$Lookup y java/lang/invoke/MethodHandles Lookup !            6  e f          /     *· ±                    	    Ê     6¸  L+¸ 
+M,¸ N² -¸ º #  ¶ ',¸ -:² ¸ º 0  ¶ '±      "         
+      %   5 !   4    6 !    2"#  
+ +$    &%#  % &# '       2"(   &%)  % &)  	 
+    •     z» 1Y· 3K» 4Y6· 8L» :Y+· <M,¶ ?W,¶ ?YNÆ *» CY-2-2· E¹ H W§ÿã,¶ N§ N,¶ N§ 
+:-¶ S-¿+¶ W§ M+¶ W§ 	N,-¶ S,¿§ L+¶ ^*°   @ G Q H L O Q  Y ` Q a e h Q  p s Z  p s \    :    $  %  &  (   ) ) * @ , G % Y , ` % p . s , t - x /   4  & *!   >+,   ^-.  t /0   r"#  '      r"(  1   M þ    I  X  :F  Qÿ     I  X  :  Q   Q ù F  Qÿ     I  X  Q   Qù B  _2   3 	     !     r² c¹ g L*¹ m M,¹ q ™ 8,¹ w À CN+{ ½ Y}SY-´ SY‚SY-´ „S¸ †¹ Œ W§ÿÅ+Æ "+¹ ’ § M+Æ +¹ ’ § 	N,-¶ S,¿±  	 N [ Q ` f i Q    & 	   3 	 4 # 5 B 6 E 5 K 7 N 8 [ 3 q 9      # (45  	 h k6    r"#  '       r"(  1   ) ý     rú =L  Qÿ 
+   I    Q   Qù 2   7 	     !     b» 1Y· 3L² c¹ g M,“½ Y}SY*S¸ †¹ Œ N-¹ • +º ›  ¹ Ÿ ,Æ $,¹ ’ § N,Æ ,¹ ’ § 
+:-¶ S-¿+°   ; H Q M S V Q    & 	   <  =  > ! ? $ > * @ ; A H = ` B   *  * 89   O k6    b$     Z ì# '      Z ì) 1   / ÿ H     I     Qÿ 
+     I    Q   Q ù 2   : 	 /         £» 1Y· 3L¥M*º §  N¸ ¨:¸ ®,¸ ´¹ º ÀÂ¹ Ä -¸ È¹ Î ¹ Ò :¸ Ö¶ Û:¹ ß À : » äY· æ: ¶ ç:		ë¶ í¶ ò:
+
+¹ q ™ 
+¹ w À î:
++
+¶ ó¹ H W§ÿÞ§ 
+:¶ ^+°  < — š Z < — š ÷    R    F  H 
+ K  M  N  O ' P - Q 5 R < U H V T Y ] Z f \ ˆ ] ” ^ — b š ` œ a ¡ d   z  ˆ ;< 
+ H O=>  T C?    ] :@A  f 1B< 	 œ /0    £$     › ì#  
+ ˜C    ‘D    ŒEF  < gGH '     H O=I   › ì) 1   H ÿ r 
+    I      ©  ¯  à    ä  î  r  ÿ $     I      ©  ¯  B  _2   :
+JK    I     *+ù¹ û ¹  ¹ H W±          @        ì#     LM  N     3       	¸
+¸³ c±           	    O   PQ    _ R_ Te VX[_ ]l   2  » ¯m	 É ¯n 	o ¯q	 × àr 	s àu	vxz 
