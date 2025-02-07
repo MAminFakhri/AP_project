@@ -2,22 +2,34 @@ package org.example;
 
 import java.io.*;
 import java.util.*;
+import java.net.http.*;
+import java.net.URI;
+import java.io.IOException;
 import com.opencsv.*;
 import com.opencsv.exceptions.CsvValidationException;
 import org.neo4j.driver.*;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class BookRecommender {
+
     private static final String CSV_FILE = "books.csv";
     private static final Driver neo4jDriver = GraphDatabase.driver("bolt://localhost:7687",
-            AuthTokens.basic("neo4j", "password"));
+            AuthTokens.basic("neo4j", "Ma1371384#"));
 
     public static void main(String[] args) {
         List<Book> books = readCSV();
         storeInNeo4j(books);
+
         String bookName = "Harry Potter";
-        List<String> recommendations = getSimilarBooks(bookName);
-        System.out.println("Recommended Books: " + recommendations);
+
+        // Get recommendations from Neo4j
+        List<String> neo4jRecommendations = getSimilarBooks(bookName);
+        System.out.println("Neo4j Recommended Books: " + neo4jRecommendations);
+
+        // Get recommendations from LLaMA API
+        List<String> llamaRecommendations = callLlamaAPI(bookName);
+        System.out.println("LLaMA API Recommended Books: " + llamaRecommendations);
     }
 
     public static List<Book> readCSV() {
@@ -29,10 +41,8 @@ public class BookRecommender {
             while ((line = csvReader.readNext()) != null) {
                 books.add(new Book(line[1], line[2])); // Title, Author
             }
-        } catch (IOException e) {
+        } catch (IOException | CsvValidationException e) {
             e.printStackTrace();
-        } catch (CsvValidationException e) {
-            throw new RuntimeException(e);
         }
         return books;
     }
@@ -56,9 +66,38 @@ public class BookRecommender {
         return recommendations;
     }
 
-    public static String callLlamaAPI(String bookName) {
-        // Mock API call
-        return "Similar Book 1, Similar Book 2";
+    public static List<String> callLlamaAPI(String bookName) {
+        List<String> recommendations = new ArrayList<>();
+
+        String apiUrl = "";
+
+        // JSON payload
+        String jsonPayload = "{\"book\": \"" + bookName + "\"}";
+
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(apiUrl))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                .build();
+
+        try {
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            String responseBody = response.body();
+
+            // Parse JSON response
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode jsonResponse = mapper.readTree(responseBody);
+
+            for (JsonNode bookNode : jsonResponse.get("recommendations")) {
+                recommendations.add(bookNode.asText());
+            }
+
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        return recommendations;
     }
 }
 
