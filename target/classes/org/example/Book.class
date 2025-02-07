@@ -1,0 +1,8 @@
+Êþº¾   A 
+       java/lang/Object <init> ()V	  	  
+ 
+  org/example/Book title Ljava/lang/String;	     author '(Ljava/lang/String;Ljava/lang/String;)V Code LineNumberTable LocalVariableTable this Lorg/example/Book; 
+SourceFile BookRecommender.java          
+                  Y     *· *+µ  *,µ 
+±           l  m 	 n  o                 
+              
